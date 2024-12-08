@@ -1,0 +1,12 @@
+docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=yourStrong(!)Password" -p 1433:1433 -d mcr.microsoft.com/mssql/server:2022-latest
+
+
+dotnet ef migrations add Init -c PatientDbContext -p ..\..\Modules\Patients\TherapyHub.Patients.Infrastructure\TherapyHub.Patients.Infrastructure.csproj -s .\TherapyHub.Api.csproj
+dotnet ef database update -c PatientDbContext -p ..\..\Modules\Patients\TherapyHub.Patients.Infrastructure\TherapyHub.Patients.Infrastructure.csproj -s .\TherapyHub.Api.csproj
+
+docker rm -f $(docker ps -qa)
+docker volume prune -f
+docker network prune
+
+
+Server=TherapyHubSqlServer,1433;Database=Patients;User ID=sa;Password=4Jgz2HmDKS;TrustServerCertificate=false;Encrypt=false

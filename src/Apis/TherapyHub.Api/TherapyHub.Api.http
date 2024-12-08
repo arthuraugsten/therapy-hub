@@ -1,0 +1,6 @@
+@TherapyHub.Api_HostAddress = https://localhost:5000
+
+GET {{TherapyHub.Api_HostAddress}}/patients
+Accept: application/json
+
+###
