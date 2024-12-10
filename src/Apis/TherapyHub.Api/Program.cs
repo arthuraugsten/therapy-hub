@@ -25,7 +25,7 @@ builder.Services.AddDbContext<PatientDbContext>(options =>
         optionsBuilder =>
         {
             optionsBuilder.EnableRetryOnFailure(5, TimeSpan.FromSeconds(20), []);
-            optionsBuilder.MigrationsHistoryTable("__EFMigrationsHistory", PatientDbContext.SchemaName);
+            optionsBuilder.MigrationsHistoryTable(PatientDbContext.MigrationHistoryTableName, PatientDbContext.SchemaName);
         }
     )
 );

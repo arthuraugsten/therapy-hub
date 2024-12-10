@@ -10,3 +10,11 @@ docker network prune
 
 
 Server=TherapyHubSqlServer,1433;Database=Patients;User ID=sa;Password=4Jgz2HmDKS;TrustServerCertificate=false;Encrypt=false
+
+
+
+# Next Steps
+
+1. Message Bus
+2. Integration Events
+3. Outbox Pattern

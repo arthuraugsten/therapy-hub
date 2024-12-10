@@ -2,9 +2,9 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TherapyHub.Patients.Domain;
 
-namespace TherapyHub.Patients.Infrastructure.Maps;
+namespace TherapyHub.Patients.Infrastructure.Configuration;
 
-internal sealed class PatientMap : IEntityTypeConfiguration<Patient>
+internal sealed class PatientConfiguration : IEntityTypeConfiguration<Patient>
 {
     public void Configure(EntityTypeBuilder<Patient> builder)
     {

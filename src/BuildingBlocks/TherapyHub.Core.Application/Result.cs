@@ -29,5 +29,6 @@ public class Result<T>
     public static implicit operator T(Result<T> result) => result.Value!;
 
     public static Result<T> Success(T value) => value;
-    public static Result<T> Failure(List<Error> error) => new(default, error);
+    public static Result<T> Failure(Error error) => new(default, [error]);
+    public static Result<T> Failure(List<Error> errors) => new(default, errors);
 }
