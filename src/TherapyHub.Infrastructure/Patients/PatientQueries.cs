@@ -7,11 +7,15 @@ using TherapyHub.Infrastructure.Persistence;
 
 namespace TherapyHub.Infrastructure.Patients;
 
-internal sealed class PatientQueries(TherapyHubDbContext dbContext) : IPatientQueries
+internal sealed class PatientQueries : IPatientQueries
 {
+    private readonly TherapyHubDbContext _dbContext;
+
+    public PatientQueries(TherapyHubDbContext dbContext) => _dbContext = dbContext;
+
     public async Task<PatientDto?> GetByIdAsync(PatientId id, PsychologistId psychologistId, CancellationToken cancellationToken)
     {
-        var patient = await dbContext.Patients
+        var patient = await _dbContext.Patients
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == id && p.PsychologistId == psychologistId, cancellationToken);
 

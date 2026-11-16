@@ -7,12 +7,17 @@ using TherapyHub.Infrastructure.DomainEvents;
 
 namespace TherapyHub.Infrastructure.Persistence;
 
-public sealed class TherapyHubDbContext(
-    DbContextOptions<TherapyHubDbContext> options,
-    IDomainEventDispatcher domainEventDispatcher) : DbContext(options), IUnitOfWork
+public sealed class TherapyHubDbContext : DbContext, IUnitOfWork
 {
     /// <summary>Name under "ConnectionStrings" in configuration.</summary>
     public const string ConnectionStringName = "TherapyHub";
+
+    private readonly IDomainEventDispatcher _domainEventDispatcher;
+
+    public TherapyHubDbContext(
+        DbContextOptions<TherapyHubDbContext> options,
+        IDomainEventDispatcher domainEventDispatcher)
+        : base(options) => _domainEventDispatcher = domainEventDispatcher;
 
     public DbSet<Patient> Patients => Set<Patient>();
 
@@ -29,7 +34,7 @@ public sealed class TherapyHubDbContext(
         var result = await base.SaveChangesAsync(cancellationToken);
 
         // Dispatched after commit: handlers see persisted state. Use an outbox if handlers must be guaranteed to run.
-        await domainEventDispatcher.DispatchAsync(domainEvents, cancellationToken);
+        await _domainEventDispatcher.DispatchAsync(domainEvents, cancellationToken);
 
         return result;
     }

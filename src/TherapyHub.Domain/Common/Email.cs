@@ -9,10 +9,7 @@ public sealed record Email
     /// <summary>Maximum length of an email address (RFC 5321 path limit).</summary>
     public const int MaxLength = 254;
 
-    private Email(string value)
-    {
-        Value = value;
-    }
+    private Email(string value) => Value = value;
 
     public string Value { get; }
 

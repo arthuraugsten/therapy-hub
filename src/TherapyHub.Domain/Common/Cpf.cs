@@ -8,10 +8,7 @@ public sealed record Cpf
     public const int Length = 11;
     public const int FormattedLength = 14; // "000.000.000-00"
 
-    private Cpf(string value)
-    {
-        Value = value;
-    }
+    private Cpf(string value) => Value = value;
 
     public string Value { get; }
 

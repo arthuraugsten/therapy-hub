@@ -6,13 +6,17 @@ using TherapyHub.Domain.Psychologists;
 namespace TherapyHub.Api.Authentication;
 
 /// <summary>Resolves the psychologist from the token's subject claim (the Keycloak user ID).</summary>
-internal sealed class CurrentUser(IHttpContextAccessor httpContextAccessor) : ICurrentUser
+internal sealed class CurrentUser : ICurrentUser
 {
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public CurrentUser(IHttpContextAccessor httpContextAccessor) => _httpContextAccessor = httpContextAccessor;
+
     public PsychologistId PsychologistId
     {
         get
         {
-            var subject = httpContextAccessor.HttpContext?.User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+            var subject = _httpContextAccessor.HttpContext?.User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
 
             return Guid.TryParse(subject, out var id)
                 ? new PsychologistId(id)

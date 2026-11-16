@@ -8,17 +8,21 @@ using TherapyHub.Infrastructure.Persistence;
 
 namespace TherapyHub.Infrastructure.Patients;
 
-internal sealed class PatientRepository(TherapyHubDbContext dbContext) : IPatientRepository
+internal sealed class PatientRepository : IPatientRepository
 {
+    private readonly TherapyHubDbContext _dbContext;
+
+    public PatientRepository(TherapyHubDbContext dbContext) => _dbContext = dbContext;
+
     public Task<Patient?> GetByIdAsync(PatientId id, PsychologistId psychologistId, CancellationToken cancellationToken) =>
-        dbContext.Patients.FirstOrDefaultAsync(
+        _dbContext.Patients.FirstOrDefaultAsync(
             p => p.Id == id && p.PsychologistId == psychologistId,
             cancellationToken);
 
     public Task<bool> IsEmailInUseAsync(PsychologistId psychologistId, Email email, CancellationToken cancellationToken) =>
-        dbContext.Patients
+        _dbContext.Patients
             .IgnoreQueryFilters() // Archived patients still hold their email (unique index).
             .AnyAsync(p => p.PsychologistId == psychologistId && p.Email == email, cancellationToken);
 
-    public void Add(Patient patient) => dbContext.Patients.Add(patient);
+    public void Add(Patient patient) => _dbContext.Patients.Add(patient);
 }
