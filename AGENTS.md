@@ -17,6 +17,7 @@ Agents that don't load those files must read the relevant one before changing `s
 First-time setup:
 
 ```bash
+git config core.hooksPath .githooks            # enables hooks that enforce signed commits (README.md, Signed commits)
 dotnet tool restore                            # installs dotnet-ef (local tool, see dotnet-tools.json)
 cp .env.example .env                           # then set the passwords in .env (never commit it)
 docker compose up -d                           # SQL Server on :1433, Keycloak on :8080
