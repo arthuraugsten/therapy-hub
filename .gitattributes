@@ -1,2 +1,9 @@
-* text=auto
-*.sh text eol=lf
+# Every text file uses LF, in the repo and in the working tree, regardless of core.autocrlf.
+* text=auto eol=lf
+
+# Binary files: never touch line endings.
+*.png binary
+*.jpg binary
+*.ico binary
+*.pfx binary
+*.snk binary
