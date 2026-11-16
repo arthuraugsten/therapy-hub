@@ -1,0 +1,24 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="AGENTS.md" />
+    <File Path="CLAUDE.md" />
+    <File Path="compose.yaml" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/TherapyHub.Domain/TherapyHub.Domain.csproj" />
+    <Project Path="src/TherapyHub.Application/TherapyHub.Application.csproj" />
+    <Project Path="src/TherapyHub.Infrastructure/TherapyHub.Infrastructure.csproj" />
+    <Project Path="src/TherapyHub.Api/TherapyHub.Api.csproj" />
+    <Project Path="src/TherapyHub.Gateway/TherapyHub.Gateway.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TherapyHub.Domain.Tests/TherapyHub.Domain.Tests.csproj" />
+    <Project Path="tests/TherapyHub.Application.Tests/TherapyHub.Application.Tests.csproj" />
+    <Project Path="tests/TherapyHub.Api.IntegrationTests/TherapyHub.Api.IntegrationTests.csproj" />
+    <Project Path="tests/TherapyHub.Gateway.IntegrationTests/TherapyHub.Gateway.IntegrationTests.csproj" />
+  </Folder>
+</Solution>
