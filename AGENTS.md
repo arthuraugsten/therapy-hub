@@ -2,7 +2,7 @@
 
 System for psychologists to manage patients, appointments, and clinical records.
 Personal project. C# / .NET 11, ASP.NET Core Minimal APIs (REPR + endpoint groups), EF Core (SQL Server),
-Clean Architecture + DDD, YARP gateway, Keycloak (OIDC).
+modular monolith (Clean Architecture + DDD, modules separated by namespace), YARP gateway, Keycloak (OIDC).
 
 This file holds the rules **every** agent needs. Role-specific rules live in the agent definitions:
 
@@ -40,10 +40,12 @@ dotnet run --project src/TherapyHub.Api        # run API     → http://localhos
 dotnet run --project src/TherapyHub.Gateway    # run gateway → http://localhost:5134 (clients call this one)
 dotnet format --verify-no-changes              # lint/format check (must pass)
 
-# EF Core migrations (always specify both projects)
-dotnet ef migrations add <Name> --project src/TherapyHub.Infrastructure --startup-project src/TherapyHub.Api --output-dir Persistence/Migrations
-dotnet ef database update      --project src/TherapyHub.Infrastructure --startup-project src/TherapyHub.Api
+# EF Core migrations: one DbContext per module, so always pass both projects and --context
+dotnet ef migrations add <Name> --project src/TherapyHub.Infrastructure --startup-project src/TherapyHub.Api --context PatientsDbContext --output-dir Patients/Persistence/Migrations
+dotnet ef database update      --project src/TherapyHub.Infrastructure --startup-project src/TherapyHub.Api --context PatientsDbContext
 ```
+
+If Windows Application Control blocks `dotnet ef` from loading the Debug build, add `--configuration Release`.
 
 NuGet versions live only in `Directory.Packages.props` (central package management). Shared build settings
 (net11.0, nullable, warnings as errors) live in `Directory.Build.props`. Don't repeat them in `.csproj` files.
@@ -55,26 +57,73 @@ Before finishing any task: build passes (0 warnings), tests pass, `dotnet format
 
 ```text
 src/
-  TherapyHub.Domain/          # Entities, aggregates, value objects, domain events, domain errors. No dependencies.
-  TherapyHub.Application/     # Use cases (commands/queries + handlers), ports (interfaces), DTOs. Depends on Domain.
-  TherapyHub.Infrastructure/  # EF Core DbContext, configurations, migrations, repositories, external services.
-  TherapyHub.Api/             # Minimal API host, REPR endpoints in feature groups, DI composition root, auth.
+  BuildingBlocks/                              # shared code only, never module code
+    TherapyHub.BuildingBlocks.Domain/          # Result, Error, Entity, AggregateRoot, IDomainEvent, Email, Cpf, PsychologistId. No dependencies.
+    TherapyHub.BuildingBlocks.Application/     # ICommand/IQuery + handlers, IDomainEventHandler, ICurrentUser, IUnitOfWork, handler scanning.
+    TherapyHub.BuildingBlocks.Infrastructure/  # ModuleDbContext base, domain event dispatcher, encrypted converter, Data Protection keys.
+    TherapyHub.BuildingBlocks.Presentation/    # IEndpoint/IEndpointGroup, ValidationFilter, ErrorExtensions, CurrentUser.
+  TherapyHub.Domain/          # Module code only: <Module>/ aggregates, IDs, errors, events.
+  TherapyHub.Application/     # Module code only: <Module>/ use cases, ports, DTOs; <Module>/PublicApi/ cross-module contracts.
+  TherapyHub.Infrastructure/  # Module code only: <Module>/ repositories, queries, <Module>Module DI; <Module>/Persistence/ DbContext, configs, migrations.
+  TherapyHub.Api/             # Minimal API host (Program.cs, composition root, auth settings) + Features/<Module>/ REPR endpoints.
   TherapyHub.Gateway/         # YARP reverse proxy: the only public entry point. JWT validation + rate limiting.
 tests/
+  TherapyHub.BuildingBlocks.Domain.Tests/  # shared value objects
   TherapyHub.Domain.Tests/
   TherapyHub.Application.Tests/
-  TherapyHub.Api.IntegrationTests/       # WebApplicationFactory + Testcontainers (SQL Server)
-  TherapyHub.Gateway.IntegrationTests/   # WebApplicationFactory + stub backend (no API, no Docker)
-infra/keycloak/                          # reproducible local Keycloak realm setup
+  TherapyHub.ArchitectureTests/            # NetArchTest: module boundaries and layer rules
+  TherapyHub.Api.IntegrationTests/         # WebApplicationFactory + Testcontainers (SQL Server)
+  TherapyHub.Gateway.IntegrationTests/     # WebApplicationFactory + stub backend (no API, no Docker)
+infra/keycloak/                            # reproducible local Keycloak realm setup
 ```
 
 Request flow: client → Gateway (authenticate, rate limit 30 req / 10 s per user, authorize) → Api (authenticate,
 authorize, tenant scoping) → SQL Server.
 
+## Modules
+
+The API is a modular monolith: one deployable host, one binary per layer, and one **module** per bounded context.
+A module is a namespace slice through every layer project: `TherapyHub.Domain.<Module>`,
+`TherapyHub.Application.<Module>`, `TherapyHub.Infrastructure.<Module>` and `TherapyHub.Api.Features.<Module>`.
+
+| Module | Status | Schema | Owns |
+| --- | --- | --- | --- |
+| Patients | built | `patients` | `Patient` (demographics, contact) |
+| Psychologists | planned | `psychologists` | `Psychologist` (CRP, settings) |
+| Scheduling | planned | `scheduling` | `Appointment` (time, status; never clinical content) |
+| ClinicalRecords | planned | `clinical` | `ClinicalRecord` + `SessionNote` (encrypted, audited) |
+
+Rules (`TherapyHub.ArchitectureTests` enforces them; these tests are the only guard, since modules share assemblies):
+
+1. **BuildingBlocks hold shared code only.** They never reference the layer projects. Layer projects hold only module
+   namespaces, plus the composition roots (`Application/DependencyInjection.cs`, `Infrastructure/DependencyInjection.cs`,
+   `Api/Program.cs`, `Api/Authentication/AuthenticationSettings.cs`).
+2. **Cross-module calls go only through `TherapyHub.Application.<Module>.PublicApi`.** Module X may use BuildingBlocks,
+   its own namespaces and other modules' `PublicApi` namespaces. It may not use another module's domain types,
+   handlers, repositories, DbContext, endpoints or domain events.
+3. A `PublicApi` namespace holds only interfaces and `sealed record` contracts with primitive types (no entities,
+   value objects or strongly typed IDs). The implementation is `internal` and lives outside the namespace (e.g.
+   `Application/Patients/PatientsApi.cs`). Contracts carry the minimum data the consumer needs (LGPD data
+   minimisation). Add a method only when a consumer needs it.
+4. PublicApi implementations are tenant-scoped through `ICurrentUser`, like handlers. Another psychologist's data is
+   reported as not found.
+5. Each module has its own `ModuleDbContext` subclass, SQL schema and `__EFMigrationsHistory` table in that schema.
+   Each context applies only its own configurations. No cross-schema joins or FKs, no use of another module's DbContext.
+   Other modules' aggregates are referenced by ID value only.
+6. There are no cross-module transactions. Domain events stay inside their module. Asynchronous reactions across
+   modules (e.g. patient archived → cancel appointments) need integration events with an outbox. Build those before
+   the first such case instead of calling another module's handler.
+7. Extracting a module later means moving its namespaces into `TherapyHub.Modules.<Module>` projects and its
+   `PublicApi` into a `.PublicApi` project. Keep rules 2–5 so that move stays mechanical.
+
 ## Shared conventions
 
 - Naming: `PascalCase` types/members, `_camelCase` private fields, `Async` suffix on every `Task`/`ValueTask` method,
   tests `Method_State_ExpectedResult`.
+- Braces: when the body of `if`/`else`/`for`/`foreach`/`while` is one statement on one line, omit the braces and put
+  the statement on the next line, indented. When the body spans more than one line, use braces (IDE0011
+  `when_multiline`, enforced by the build). In an `if`/`else` chain, if any branch needs braces, use braces on every
+  branch. The analyzer can't flag unneeded braces, so reviewers check that half.
 
 ## Sensitive data (patient health information)
 
@@ -94,7 +143,7 @@ and record keeping follows CFP rules (Resolution 001/2009) and the Psychologist'
 ## Boundaries
 
 **Always:** follow your role's rules, keep build/tests/format green, report results faithfully (failures included).
-**Ask first:** adding NuGet packages, changing aggregate boundaries, schema changes that drop/rename columns, changing auth,
+**Ask first:** adding NuGet packages, adding a module or changing module/aggregate boundaries, schema changes that drop/rename columns, changing auth,
 changing rate-limit values or scope.
 **Never:** commit secrets or `.env`, log PHI, use real patient data, disable nullable or analyzers to make code compile,
 skip or weaken a failing test to get green.

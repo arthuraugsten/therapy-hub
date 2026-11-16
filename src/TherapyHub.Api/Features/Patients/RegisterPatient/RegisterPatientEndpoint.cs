@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 
-using TherapyHub.Api.Endpoints;
-using TherapyHub.Application.Abstractions.Messaging;
 using TherapyHub.Application.Patients;
 using TherapyHub.Application.Patients.RegisterPatient;
+using TherapyHub.BuildingBlocks.Application.Abstractions.Messaging;
+using TherapyHub.BuildingBlocks.Presentation.Endpoints;
 
 namespace TherapyHub.Api.Features.Patients.RegisterPatient;
 

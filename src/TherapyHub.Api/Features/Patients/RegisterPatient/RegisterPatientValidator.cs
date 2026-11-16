@@ -1,6 +1,6 @@
 using FluentValidation;
 
-using TherapyHub.Domain.Common;
+using TherapyHub.BuildingBlocks.Domain.Common;
 using TherapyHub.Domain.Patients;
 
 namespace TherapyHub.Api.Features.Patients.RegisterPatient;

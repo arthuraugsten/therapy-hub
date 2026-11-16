@@ -1,4 +1,4 @@
-using TherapyHub.Domain.Abstractions;
+using TherapyHub.BuildingBlocks.Domain.Abstractions;
 
 namespace TherapyHub.Domain.Patients;
 

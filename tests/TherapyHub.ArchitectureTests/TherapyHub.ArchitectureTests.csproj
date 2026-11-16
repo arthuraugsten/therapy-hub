@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NetArchTest.Rules" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <!--
+    The Api and the Gateway both generate a global Program class. Referencing both is fine as long as no code here
+    names Program; assemblies are reached through other public types (see ArchitectureAssemblies).
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\BuildingBlocks\TherapyHub.BuildingBlocks.Domain\TherapyHub.BuildingBlocks.Domain.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\TherapyHub.BuildingBlocks.Application\TherapyHub.BuildingBlocks.Application.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\TherapyHub.BuildingBlocks.Infrastructure\TherapyHub.BuildingBlocks.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\TherapyHub.BuildingBlocks.Presentation\TherapyHub.BuildingBlocks.Presentation.csproj" />
+    <ProjectReference Include="..\..\src\TherapyHub.Domain\TherapyHub.Domain.csproj" />
+    <ProjectReference Include="..\..\src\TherapyHub.Application\TherapyHub.Application.csproj" />
+    <ProjectReference Include="..\..\src\TherapyHub.Infrastructure\TherapyHub.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\TherapyHub.Api\TherapyHub.Api.csproj" />
+    <ProjectReference Include="..\..\src\TherapyHub.Gateway\TherapyHub.Gateway.csproj" />
+  </ItemGroup>
+
+</Project>

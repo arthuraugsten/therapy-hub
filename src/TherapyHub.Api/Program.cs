@@ -3,9 +3,9 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 using TherapyHub.Api.Authentication;
-using TherapyHub.Api.Endpoints;
 using TherapyHub.Application;
-using TherapyHub.Application.Abstractions.Authentication;
+using TherapyHub.BuildingBlocks.Presentation.Authentication;
+using TherapyHub.BuildingBlocks.Presentation.Endpoints;
 using TherapyHub.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,8 +17,7 @@ builder.Services
 builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly, includeInternalTypes: true);
 builder.Services.AddEndpoints(typeof(Program).Assembly);
 
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+builder.Services.AddCurrentUser();
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -42,9 +41,7 @@ app.UseExceptionHandler();
 app.UseStatusCodePages();
 
 if (app.Environment.IsDevelopment())
-{
     app.MapOpenApi();
-}
 
 app.UseAuthentication();
 app.UseAuthorization();

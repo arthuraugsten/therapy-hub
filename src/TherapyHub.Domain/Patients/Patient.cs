@@ -1,7 +1,6 @@
-using TherapyHub.Domain.Abstractions;
-using TherapyHub.Domain.Common;
+using TherapyHub.BuildingBlocks.Domain.Abstractions;
+using TherapyHub.BuildingBlocks.Domain.Common;
 using TherapyHub.Domain.Patients.Events;
-using TherapyHub.Domain.Psychologists;
 
 namespace TherapyHub.Domain.Patients;
 
@@ -66,19 +65,13 @@ public sealed class Patient : AggregateRoot<PatientId>
         var name = fullName?.Trim();
 
         if (string.IsNullOrEmpty(name))
-        {
             return PatientErrors.NameRequired;
-        }
 
         if (name.Length > FullNameMaxLength)
-        {
             return PatientErrors.NameTooLong;
-        }
 
         if (birthDate is { } date && date > DateOnly.FromDateTime(now.UtcDateTime))
-        {
             return PatientErrors.BirthDateInFuture;
-        }
 
         var patient = new Patient(PatientId.New(), psychologistId, name, email, cpf, birthDate, now);
         patient.Raise(new PatientRegistered(patient.Id, psychologistId, now));
@@ -90,9 +83,7 @@ public sealed class Patient : AggregateRoot<PatientId>
     public Result Archive(DateTimeOffset now)
     {
         if (IsArchived)
-        {
             return Result.Failure(PatientErrors.AlreadyArchived);
-        }
 
         ArchivedAt = now;
         return Result.Success();

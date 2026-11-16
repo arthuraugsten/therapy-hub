@@ -6,7 +6,7 @@ Keep the main context for planning, decisions, and talking to the user. Delegate
 
 | Work | Agent |
 | --- | --- |
-| Production code in `src/`, migrations, `Directory.*.props`, `compose.yaml`, `infra/` | `dotnet-backend-engineer` |
+| Production code in `src/` (BuildingBlocks + module code), migrations, `Directory.*.props`, `compose.yaml`, `infra/` | `dotnet-backend-engineer` |
 | Tests in `tests/`, running suites, reproducing bugs, end-to-end checks | `qa-engineer` |
 | Git, AGENTS.md / CLAUDE.md / agent files, questions to the user | main session |
 

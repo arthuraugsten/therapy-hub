@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BuildingBlocks\TherapyHub.BuildingBlocks.Presentation\TherapyHub.BuildingBlocks.Presentation.csproj" />
     <ProjectReference Include="..\TherapyHub.Application\TherapyHub.Application.csproj" />
     <ProjectReference Include="..\TherapyHub.Infrastructure\TherapyHub.Infrastructure.csproj" />
   </ItemGroup>

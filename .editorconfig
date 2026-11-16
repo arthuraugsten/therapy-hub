@@ -125,7 +125,9 @@ csharp_style_prefer_readonly_struct = true:suggestion
 csharp_style_prefer_readonly_struct_member = true:suggestion
 
 # Code-block preferences
-csharp_prefer_braces = true:silent
+# No braces when the body of if/else/for/foreach/while is a single statement on one line; braces when it spans lines.
+# IDE0011 only enforces the multi-line half; the one-line half is a convention (see AGENTS.md, Shared conventions).
+csharp_prefer_braces = when_multiline:warning
 csharp_prefer_simple_using_statement = true:suggestion
 csharp_style_namespace_declarations = file_scoped:warning
 csharp_style_prefer_method_group_conversion = true:silent

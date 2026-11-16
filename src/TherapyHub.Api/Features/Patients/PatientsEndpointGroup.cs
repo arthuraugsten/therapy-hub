@@ -1,4 +1,4 @@
-using TherapyHub.Api.Endpoints;
+using TherapyHub.BuildingBlocks.Presentation.Endpoints;
 
 namespace TherapyHub.Api.Features.Patients;
 

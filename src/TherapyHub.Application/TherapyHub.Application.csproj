@@ -1,6 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\BuildingBlocks\TherapyHub.BuildingBlocks.Application\TherapyHub.BuildingBlocks.Application.csproj" />
     <ProjectReference Include="..\TherapyHub.Domain\TherapyHub.Domain.csproj" />
   </ItemGroup>
 
