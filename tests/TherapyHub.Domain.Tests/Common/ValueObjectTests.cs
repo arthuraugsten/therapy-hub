@@ -7,18 +7,14 @@ public sealed class ValueObjectTests
     // 529.982.247-25 is a widely used *test* CPF with valid check digits. It belongs to no real person.
     private const string ValidFormattedCpf = "529.982.247-25";
     private const string ValidCpfDigits = "52998224725";
-    private const string ValidCpfWrongSecondCheckDigit = "52998224726";
-    private const string ValidCpfWrongFirstCheckDigit = "52998224715";
     private const string NormalizedEmail = "fake.patient@example.com";
     private const string EmailDomain = "@example.com";
     private const string Padding = "  ";
     private const char LocalPartChar = 'a';
-    private const char ArabicIndicZero = '٠';
-    private const char FullWidthZero = '０';
 
     [Theory]
-    [InlineData(ValidFormattedCpf)]
-    [InlineData(ValidCpfDigits)]
+    [InlineData("529.982.247-25")]
+    [InlineData("52998224725")]
     public void CpfCreate_ValidCpf_StoresDigitsOnly(string value)
     {
         var result = Cpf.Create(value);
@@ -133,8 +129,8 @@ public sealed class ValueObjectTests
     }
 
     [Theory]
-    [InlineData(ValidCpfWrongSecondCheckDigit)] // fast path
-    [InlineData(ValidCpfWrongFirstCheckDigit)]  // fast path
+    [InlineData("52998224726")]                 // fast path
+    [InlineData("52998224715")]                 // fast path
     [InlineData("529.982.247-15")]              // slow path, wrong first check digit
     [InlineData("529 982 247 26")]              // slow path, wrong second check digit
     public void CpfCreate_WrongCheckDigit_ReturnsValidationError(string value)
@@ -145,8 +141,8 @@ public sealed class ValueObjectTests
     }
 
     [Theory]
-    [InlineData(ArabicIndicZero)]
-    [InlineData(FullWidthZero)]
+    [InlineData('٠')] // Arabic-Indic zero (U+0660)
+    [InlineData('０')] // full-width zero (U+FF10)
     public void CpfCreate_OnlyNonAsciiDigits_ReturnsValidationError(char zero)
     {
         var value = ToDigitsStartingAt(ValidCpfDigits, zero);
@@ -157,8 +153,8 @@ public sealed class ValueObjectTests
     }
 
     [Theory]
-    [InlineData(ArabicIndicZero)]
-    [InlineData(FullWidthZero)]
+    [InlineData('٠')] // Arabic-Indic zero (U+0660)
+    [InlineData('０')] // full-width zero (U+FF10)
     public void CpfCreate_NonAsciiDigitsMixedWithValidCpf_IgnoresNonAsciiDigits(char zero)
     {
         var value = ToDigitsStartingAt(ValidCpfDigits, zero) + ValidCpfDigits;

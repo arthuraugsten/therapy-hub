@@ -161,7 +161,7 @@ internal sealed class RegisterPatientEndpoint : IEndpoint<PatientsEndpointGroup>
 - Constructor (primary constructor) injection only; no service locator; no static mutable state.
 - Small interfaces per consumer over a generic `IRepository<T>`.
 - Async all the way; `Async` suffix on every `Task`/`ValueTask` method; never `.Result`/`.Wait()`.
-- **Constants** (see the shared rule in AGENTS.md). Where they live in production code: `Domain/**/*Errors.cs` (errors),
+- **Constants**: when a value is shared, it lives in one place: `Domain/**/*Errors.cs` (errors),
   value objects (`Email.MaxLength`, `Cpf.Length`), `*Settings` classes for configuration keys (`AuthenticationSettings`,
   `DataProtectionSettings`, `GatewaySettings`), options classes for `Default*` values. Compose related constants
   (`KeysPathKey = SectionName + ":KeysPath"`). The Gateway keeps its own copies of shared keys in `GatewaySettings`.
