@@ -1,32 +1,20 @@
 using Microsoft.Extensions.DependencyInjection;
 
-using TherapyHub.Application.Abstractions.Messaging;
+using TherapyHub.Application.Patients;
+using TherapyHub.Application.Patients.PublicApi;
+using TherapyHub.BuildingBlocks.Application;
 
 namespace TherapyHub.Application;
 
 public static class DependencyInjection
 {
-    private static readonly Type[] HandlerInterfaces =
-    [
-        typeof(ICommandHandler<,>),
-        typeof(IQueryHandler<,>),
-        typeof(IDomainEventHandler<>),
-    ];
-
-    /// <summary>Registers every command, query, and domain event handler in this assembly.</summary>
+    /// <summary>Registers every module's handlers in this assembly and each module's public API.</summary>
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        var registrations =
-            from type in typeof(DependencyInjection).Assembly.GetTypes()
-            where type is { IsClass: true, IsAbstract: false }
-            from contract in type.GetInterfaces()
-            where contract.IsGenericType && HandlerInterfaces.Contains(contract.GetGenericTypeDefinition())
-            select (contract, type);
+        services.AddHandlersFromAssembly(typeof(DependencyInjection).Assembly);
 
-        foreach (var (contract, implementation) in registrations)
-        {
-            services.AddScoped(contract, implementation);
-        }
+        // Patients module: the only surface other modules may call.
+        services.AddScoped<IPatientsApi, PatientsApi>();
 
         return services;
     }

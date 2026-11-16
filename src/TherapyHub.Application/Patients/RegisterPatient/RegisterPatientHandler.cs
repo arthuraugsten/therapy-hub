@@ -1,8 +1,7 @@
-using TherapyHub.Application.Abstractions.Authentication;
-using TherapyHub.Application.Abstractions.Data;
-using TherapyHub.Application.Abstractions.Messaging;
-using TherapyHub.Domain.Abstractions;
-using TherapyHub.Domain.Common;
+using TherapyHub.BuildingBlocks.Application.Abstractions.Authentication;
+using TherapyHub.BuildingBlocks.Application.Abstractions.Messaging;
+using TherapyHub.BuildingBlocks.Domain.Abstractions;
+using TherapyHub.BuildingBlocks.Domain.Common;
 using TherapyHub.Domain.Patients;
 
 namespace TherapyHub.Application.Patients.RegisterPatient;
@@ -10,13 +9,13 @@ namespace TherapyHub.Application.Patients.RegisterPatient;
 internal sealed class RegisterPatientHandler : ICommandHandler<RegisterPatientCommand, PatientDto>
 {
     private readonly IPatientRepository _patients;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IPatientsUnitOfWork _unitOfWork;
     private readonly ICurrentUser _currentUser;
     private readonly TimeProvider _timeProvider;
 
     public RegisterPatientHandler(
         IPatientRepository patients,
-        IUnitOfWork unitOfWork,
+        IPatientsUnitOfWork unitOfWork,
         ICurrentUser currentUser,
         TimeProvider timeProvider)
     {

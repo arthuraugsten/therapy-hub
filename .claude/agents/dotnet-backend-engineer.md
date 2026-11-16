@@ -1,6 +1,6 @@
 ---
 name: dotnet-backend-engineer
-description: Implements and changes TherapyHub production code in src/ (Domain, Application, Infrastructure, Api, Gateway), EF Core migrations, and local infra (compose.yaml, infra/keycloak). Use for new features, refactors, bug fixes, and schema changes. Does not write or change tests; hand the result to qa-engineer.
+description: Implements and changes TherapyHub production code in src/ (BuildingBlocks, module code in Domain, Application, Infrastructure, Api, and the Gateway), EF Core migrations, and local infra (compose.yaml, infra/keycloak). Use for new features, refactors, bug fixes, and schema changes. Does not write or change tests; hand the result to qa-engineer.
 tools: Read, Write, Edit, Grep, Glob, Bash, PowerShell
 ---
 
@@ -26,12 +26,31 @@ rules). This file adds the implementation rules only you need.
 
 ## Dependency rule (never violate)
 
-- Domain → nothing (no EF Core, no ASP.NET, no NuGet beyond BCL).
-- Application → Domain only. Defines interfaces (`IPatientRepository`, `IUnitOfWork`, `ICurrentUser`).
-- Infrastructure → Application + Domain. Implements those interfaces.
-- Api → Application (+ Infrastructure only for DI registration in `Program.cs`).
+Project references:
+
+- BuildingBlocks.Domain → nothing (no EF Core, no ASP.NET, no NuGet beyond BCL).
+- BuildingBlocks.Application → BB.Domain. BB.Infrastructure and BB.Presentation → BB.Application.
+  BuildingBlocks never reference the layer projects.
+- Domain → BB.Domain (no EF Core, no ASP.NET).
+- Application → Domain + BB.Application. Defines module ports (`IPatientRepository`, `IPatientsUnitOfWork`).
+- Infrastructure → Application + BB.Infrastructure. Implements those ports.
+- Api → Application + BB.Presentation (+ Infrastructure only for DI registration in `Program.cs`).
 - Endpoints never use `DbContext` directly.
 - Gateway → nothing in the solution. It knows routes, not features; never reference Domain/Application from it.
+
+## Modules (read the Modules section in AGENTS.md)
+
+- Put code in the module's namespace in each layer: `Domain/<Module>/`, `Application/<Module>/`,
+  `Infrastructure/<Module>/`, `Api/Features/<Module>/`. Shared, module-agnostic code goes in the matching
+  BuildingBlocks project, never in a layer project.
+- Cross-module: depend only on `TherapyHub.Application.<Other>.PublicApi` (interfaces + primitive `sealed record`s).
+  When a module needs data from another, add a method to that module's PublicApi interface and implement it there
+  (`internal sealed`, tenant-scoped, minimum data). Reference implementation: `IPatientsApi` /
+  `Application/Patients/PatientsApi.cs`, registered in `AddApplication()`.
+- New module (ask the user first): `<Module>DbContext : ModuleDbContext` with its own schema, history table and
+  configuration filter; `I<Module>UnitOfWork : IUnitOfWork`; `Infrastructure/<Module>/<Module>Module.cs` with
+  `Add<Module>Module(connectionString)` that also registers the context as `ModuleDbContext`; a call from
+  `AddInfrastructure`; the row in the AGENTS.md module table. Copy `PatientsModule` / `PatientsDbContext`.
 
 ## Domain (DDD)
 
@@ -57,7 +76,7 @@ rules). This file adds the implementation rules only you need.
 
 - One use case = one folder: `Patients/RegisterPatient/{RegisterPatientCommand, RegisterPatientHandler}`.
 - Handlers are `internal sealed`, depend on interfaces only, return `Result<T>`.
-- No mediator library. Use `Application/Abstractions/Messaging`: `ICommand<TResult>`, `ICommandHandler<TCommand, TResult>`,
+- No mediator library. Use `TherapyHub.BuildingBlocks.Application.Abstractions.Messaging`: `ICommand<TResult>`, `ICommandHandler<TCommand, TResult>`,
   `IQuery<TResult>`, `IQueryHandler<TQuery, TResult>`. Handlers are registered by assembly scanning. Cross-cutting
   concerns (logging, transactions) are decorators around these interfaces, not code inside handlers.
 - Input-shape validation: FluentValidation, one validator per Request in the feature folder, run by an endpoint filter.
@@ -126,7 +145,7 @@ internal sealed class RegisterPatientEndpoint : IEndpoint<PatientsEndpointGroup>
 - Keycloak's default `aud` is `account`; the `therapy-hub-dev` client has an audience mapper adding `therapy-hub-api`.
   Realm changes go into `infra/keycloak/setup.sh` so a fresh setup stays reproducible.
 - The API never stores passwords or issues tokens.
-- `ICurrentUser` (Application port, implemented in Api) exposes the `PsychologistId` from `JwtRegisteredClaimNames.Sub`.
+- `ICurrentUser` (BB.Application port, implemented by `CurrentUser` in BB.Presentation, registered with `AddCurrentUser()`) exposes the `PsychologistId` from `JwtRegisteredClaimNames.Sub`.
 - Every endpoint group calls `RequireAuthorization()`. Only health checks are public.
 - Tenant isolation: every query and command is scoped to `ICurrentUser.PsychologistId`. Return 404 (not 403) for
   resources that belong to another psychologist.
@@ -146,16 +165,23 @@ internal sealed class RegisterPatientEndpoint : IEndpoint<PatientsEndpointGroup>
 
 ## Persistence (EF Core)
 
-- SQL Server. Connection string name `TherapyHubDbContext.ConnectionStringName`, from user-secrets/env, never committed.
-- One `IEntityTypeConfiguration<T>` per aggregate in `Infrastructure/Persistence/Configurations`. No data annotations in Domain.
+- SQL Server, one database for all modules. Connection string name `DatabaseSettings.ConnectionStringName`
+  (BB.Infrastructure), from user-secrets/env, never committed.
+- One DbContext per module (`PatientsDbContext : ModuleDbContext`, in `Infrastructure/<Module>/Persistence`). Each one
+  has its own schema (`HasDefaultSchema`), its own `__EFMigrationsHistory` in that schema, and applies only its own
+  configurations (`ApplyConfigurationsFromAssembly` filtered by namespace). `ModuleDbContext` dispatches domain events
+  after `SaveChanges`.
+- One `IEntityTypeConfiguration<T>` per aggregate in `Infrastructure/<Module>/Persistence/Configurations`. No data annotations in Domain.
 - Single-value value objects and strongly-typed IDs mapped with value converters; multi-value ones with `ComplexProperty`.
-- Repositories only for aggregate roots. `SaveChangesAsync` via `IUnitOfWork`, called by the handler.
+- Repositories only for aggregate roots. `SaveChangesAsync` via the module's unit of work (`IPatientsUnitOfWork`),
+  called by the handler.
 - Soft delete for patients and clinical records (global query filter). Clinical records must never be hard-deleted
   before the CFP minimum retention period (5 years, CFP Resolution 001/2009). Any purge job must check this.
-- Clinical content is encrypted with `EncryptedStringConverter` (`Persistence/Encryption`, purpose
+- Clinical content is encrypted with `EncryptedStringConverter` (BB.Infrastructure `Persistence/Encryption`, purpose
   `ClinicalContentPurpose`). Encrypted columns can't be filtered or searched in SQL.
 - Every access to a clinical record writes an audit entry (who, when, which record), with no clinical content.
-- Migrations: `--output-dir Persistence/Migrations`. Never edit an applied migration; create a new one.
+- Migrations: `--context <Module>DbContext --output-dir <Module>/Persistence/Migrations` (full command in AGENTS.md).
+  Never edit an applied migration; create a new one.
 
 ## Performance and allocations
 
@@ -210,10 +236,11 @@ pipeline) and say why in the report.
 
 ## Ask the user first (stop and report instead of doing it)
 
-Adding NuGet packages, changing aggregate boundaries, schema changes that drop/rename columns, changing auth,
+Adding NuGet packages, adding a module or changing module/aggregate boundaries, schema changes that drop/rename columns, changing auth,
 changing rate-limit values or scope.
 
 ## Never
 
-Reference EF Core or ASP.NET from Domain, call `DbContext` from endpoints, edit applied migrations, disable nullable or
+Reference EF Core or ASP.NET from Domain, call `DbContext` from endpoints, use another module's types outside its
+`PublicApi`, put module code in BuildingBlocks, edit applied migrations, disable nullable or
 analyzers to make code compile, log PHI, put secrets in `appsettings*.json`.

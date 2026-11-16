@@ -1,5 +1,5 @@
+using TherapyHub.BuildingBlocks.Domain.Common;
 using TherapyHub.Domain.Patients;
-using TherapyHub.Domain.Psychologists;
 
 namespace TherapyHub.Application.Patients;
 
@@ -7,4 +7,7 @@ namespace TherapyHub.Application.Patients;
 public interface IPatientQueries
 {
     Task<PatientDto?> GetByIdAsync(PatientId id, PsychologistId psychologistId, CancellationToken cancellationToken);
+
+    /// <summary>True when an active (not archived) patient with this ID belongs to the psychologist.</summary>
+    Task<bool> ExistsAsync(PatientId id, PsychologistId psychologistId, CancellationToken cancellationToken);
 }

@@ -1,18 +1,17 @@
 using Microsoft.EntityFrameworkCore;
 
 using TherapyHub.Application.Patients;
-using TherapyHub.Domain.Common;
+using TherapyHub.BuildingBlocks.Domain.Common;
 using TherapyHub.Domain.Patients;
-using TherapyHub.Domain.Psychologists;
-using TherapyHub.Infrastructure.Persistence;
+using TherapyHub.Infrastructure.Patients.Persistence;
 
 namespace TherapyHub.Infrastructure.Patients;
 
 internal sealed class PatientRepository : IPatientRepository
 {
-    private readonly TherapyHubDbContext _dbContext;
+    private readonly PatientsDbContext _dbContext;
 
-    public PatientRepository(TherapyHubDbContext dbContext) => _dbContext = dbContext;
+    public PatientRepository(PatientsDbContext dbContext) => _dbContext = dbContext;
 
     public Task<Patient?> GetByIdAsync(PatientId id, PsychologistId psychologistId, CancellationToken cancellationToken) =>
         _dbContext.Patients.FirstOrDefaultAsync(

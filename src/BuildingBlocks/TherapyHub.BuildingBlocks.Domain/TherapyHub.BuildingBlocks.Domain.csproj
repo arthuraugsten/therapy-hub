@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Shared kernel for every module's Domain. No dependencies: do not add package or project references here. -->
+
+</Project>

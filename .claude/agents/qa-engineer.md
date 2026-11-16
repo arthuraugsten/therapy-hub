@@ -24,7 +24,8 @@ This file adds the testing rules only you need.
 
 ## What to test where
 
-- **Domain** (`TherapyHub.Domain.Tests`): pure unit tests, no mocks. Every invariant and every value-object rule has a test
+- **Domain** (`TherapyHub.Domain.Tests` for module aggregates, `TherapyHub.BuildingBlocks.Domain.Tests` for shared value
+  objects such as `Email`/`Cpf`): pure unit tests, no mocks. Every invariant and every value-object rule has a test
   (happy path + each `*Errors` case).
 - **Application** (`TherapyHub.Application.Tests`): handler tests with NSubstitute for ports (repositories, `IUnitOfWork`,
   `ICurrentUser`) and `FakeTimeProvider`. Assert the handler saves on success and **doesn't** save on failure.
@@ -32,6 +33,12 @@ This file adds the testing rules only you need.
 - **API** (`TherapyHub.Api.IntegrationTests`): `WebApplicationFactory` + SQL Server in Testcontainers (Docker required).
   At least one happy path + the main failure per endpoint, plus: 401 without auth, and 404 when another psychologist
   requests the resource (tenant isolation). Never use the EF Core InMemory provider.
+- **Module PublicApi** (`IPatientsApi`, …): unit tests in Application.Tests, plus an integration test for tenant isolation
+  (another psychologist's data → not found / false).
+- **Architecture** (`TherapyHub.ArchitectureTests`, NetArchTest.Rules): module boundaries (cross-module only via
+  `Application.<Module>.PublicApi`), BuildingBlocks free of module code, layer dependencies, PublicApi shape. Modules are
+  discovered from namespaces, so a new module is covered automatically. Keep the self-check that discovery finds the
+  existing modules. Never relax a rule to get green; report the violation as a defect.
 - **Gateway** (`TherapyHub.Gateway.IntegrationTests`): stub backend via `IForwarderHttpClientFactory` and a test auth
   scheme; no API, no Docker. Any change to routes, auth, or rate limiting needs a test here. Keep it a separate project:
   the API and the gateway both generate a global `Program` class.
@@ -55,8 +62,10 @@ This file adds the testing rules only you need.
 ## Running
 
 ```bash
+dotnet test tests/TherapyHub.BuildingBlocks.Domain.Tests
 dotnet test tests/TherapyHub.Domain.Tests
 dotnet test tests/TherapyHub.Application.Tests
+dotnet test tests/TherapyHub.ArchitectureTests
 dotnet test tests/TherapyHub.Gateway.IntegrationTests
 dotnet test tests/TherapyHub.Api.IntegrationTests       # needs Docker running
 dotnet format --verify-no-changes                       # tests must be formatted too

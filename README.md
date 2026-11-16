@@ -24,8 +24,14 @@ Each psychologist sees only their own patients. Clinical data is treated as sens
 
 ## Architecture
 
-The solution uses Clean Architecture with Domain-Driven Design. Dependencies point inward: the Domain depends on
-nothing, and outer layers depend on inner ones.
+The API is a **modular monolith**: one deployable host, organised by bounded context. Each module (today `Patients`;
+later `Psychologists`, `Scheduling`, `ClinicalRecords`) is a namespace slice through the layer projects and owns its
+own SQL schema and DbContext. Modules call each other only through a public API namespace
+(`TherapyHub.Application.<Module>.PublicApi`). Shared, module-agnostic code lives in the `BuildingBlocks` projects.
+Architecture tests enforce these boundaries.
+
+Within the layers, the solution uses Clean Architecture with Domain-Driven Design. Dependencies point inward: the
+Domain depends only on the shared kernel, and outer layers depend on inner ones.
 
 ```text
           ┌────────────────────────────────────────────┐
@@ -46,13 +52,17 @@ nothing, and outer layers depend on inner ones.
           └────────────────────────────────────────────┘
 ```
 
-| Project                     | Responsibility                                                                                                                               |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TherapyHub.Domain`         | Aggregates (e.g. `Patient`), strongly typed IDs, value objects (`Cpf`, `Email`), domain events, `Result`/`Error`. No dependencies.           |
-| `TherapyHub.Application`    | Commands and queries with their handlers, ports such as `IPatientRepository`, `IUnitOfWork`, `ICurrentUser`, and DTOs.                       |
-| `TherapyHub.Infrastructure` | `TherapyHubDbContext`, entity configurations, migrations, repositories, query services, encrypted column converter, domain event dispatcher. |
-| `TherapyHub.Api`            | Minimal API host. One folder per use case (`Features/<Area>/<UseCase>/`) holding the endpoint, request, response, and validator.             |
-| `TherapyHub.Gateway`        | YARP reverse proxy and the only public entry point. Validates the JWT and applies rate limits before forwarding to the API.                  |
+| Project                                    | Responsibility                                                                                                                |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `TherapyHub.BuildingBlocks.Domain`         | Shared kernel: `Result`/`Error`, `Entity`, `AggregateRoot`, `IDomainEvent`, value objects (`Email`, `Cpf`), `PsychologistId`. |
+| `TherapyHub.BuildingBlocks.Application`    | Command/query/event handler abstractions, `ICurrentUser`, `IUnitOfWork`, handler scanning.                                    |
+| `TherapyHub.BuildingBlocks.Infrastructure` | `ModuleDbContext` base, domain event dispatcher, encrypted column converter, Data Protection key setup.                       |
+| `TherapyHub.BuildingBlocks.Presentation`   | Endpoint group discovery, validation filter, ProblemDetails mapping, `CurrentUser`.                                           |
+| `TherapyHub.Domain`                        | Per module (`Patients/`): aggregates, strongly typed IDs, domain events, errors.                                              |
+| `TherapyHub.Application`                   | Per module: commands and queries with handlers, ports, DTOs, and the module's `PublicApi/` contracts.                         |
+| `TherapyHub.Infrastructure`                | Per module: DbContext (own schema), configurations, migrations, repositories, query services, module DI registration.         |
+| `TherapyHub.Api`                           | Minimal API host. One folder per use case (`Features/<Module>/<UseCase>/`) with the endpoint, request, response, validator.   |
+| `TherapyHub.Gateway`                       | YARP reverse proxy and the only public entry point. Validates the JWT and applies rate limits before forwarding to the API.   |
 
 ### Request flow
 
@@ -178,16 +188,18 @@ dotnet build                          # build the solution (must have 0 warnings
 dotnet test                           # all tests; API integration tests need Docker running
 dotnet format --verify-no-changes     # format check (must pass)
 
-# EF Core migrations (always pass both projects)
-dotnet ef migrations add <Name> --project src/TherapyHub.Infrastructure --startup-project src/TherapyHub.Api --output-dir Persistence/Migrations
+# EF Core migrations (one DbContext per module: always pass both projects and --context)
+dotnet ef migrations add <Name> --project src/TherapyHub.Infrastructure --startup-project src/TherapyHub.Api --context PatientsDbContext --output-dir Patients/Persistence/Migrations
 ```
 
-| Test project                          | Scope                                                             |
-| ------------------------------------- | ----------------------------------------------------------------- |
-| `TherapyHub.Domain.Tests`             | Aggregates and value objects                                      |
-| `TherapyHub.Application.Tests`        | Use case handlers with substituted ports                          |
-| `TherapyHub.Api.IntegrationTests`     | HTTP endpoints against a real SQL Server in Testcontainers        |
-| `TherapyHub.Gateway.IntegrationTests` | Gateway auth and rate limiting against a stub backend (no Docker) |
+| Test project                             | Scope                                                             |
+| ---------------------------------------- | ----------------------------------------------------------------- |
+| `TherapyHub.BuildingBlocks.Domain.Tests` | Shared value objects (`Email`, `Cpf`)                             |
+| `TherapyHub.Domain.Tests`                | Module aggregates                                                 |
+| `TherapyHub.Application.Tests`           | Use case handlers and module public APIs with substituted ports   |
+| `TherapyHub.ArchitectureTests`           | Module boundaries and layer dependencies (NetArchTest)            |
+| `TherapyHub.Api.IntegrationTests`        | HTTP endpoints against a real SQL Server in Testcontainers        |
+| `TherapyHub.Gateway.IntegrationTests`    | Gateway auth and rate limiting against a stub backend (no Docker) |
 
 ## Signed commits
 

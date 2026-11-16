@@ -2,13 +2,11 @@ using Microsoft.Extensions.Time.Testing;
 
 using NSubstitute;
 
-using TherapyHub.Application.Abstractions.Authentication;
-using TherapyHub.Application.Abstractions.Data;
 using TherapyHub.Application.Patients;
 using TherapyHub.Application.Patients.RegisterPatient;
-using TherapyHub.Domain.Common;
+using TherapyHub.BuildingBlocks.Application.Abstractions.Authentication;
+using TherapyHub.BuildingBlocks.Domain.Common;
 using TherapyHub.Domain.Patients;
-using TherapyHub.Domain.Psychologists;
 
 namespace TherapyHub.Application.Tests.Patients;
 
@@ -26,7 +24,7 @@ public sealed class RegisterPatientHandlerTests
     private static readonly DateTimeOffset Now = new(2026, 11, 15, 12, 0, 0, TimeSpan.Zero);
 
     private readonly IPatientRepository _patients = Substitute.For<IPatientRepository>();
-    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly IPatientsUnitOfWork _unitOfWork = Substitute.For<IPatientsUnitOfWork>();
     private readonly RegisterPatientHandler _handler;
 
     public RegisterPatientHandlerTests()

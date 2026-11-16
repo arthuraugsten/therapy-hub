@@ -1,6 +1,6 @@
-using TherapyHub.Application.Abstractions.Authentication;
-using TherapyHub.Application.Abstractions.Messaging;
-using TherapyHub.Domain.Abstractions;
+using TherapyHub.BuildingBlocks.Application.Abstractions.Authentication;
+using TherapyHub.BuildingBlocks.Application.Abstractions.Messaging;
+using TherapyHub.BuildingBlocks.Domain.Abstractions;
 using TherapyHub.Domain.Patients;
 
 namespace TherapyHub.Application.Patients.GetPatientById;

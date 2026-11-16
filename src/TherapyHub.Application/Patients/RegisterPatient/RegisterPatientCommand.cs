@@ -1,4 +1,4 @@
-using TherapyHub.Application.Abstractions.Messaging;
+using TherapyHub.BuildingBlocks.Application.Abstractions.Messaging;
 
 namespace TherapyHub.Application.Patients.RegisterPatient;
 

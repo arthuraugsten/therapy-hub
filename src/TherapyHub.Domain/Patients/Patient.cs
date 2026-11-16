@@ -1,7 +1,6 @@
-using TherapyHub.Domain.Abstractions;
-using TherapyHub.Domain.Common;
+using TherapyHub.BuildingBlocks.Domain.Abstractions;
+using TherapyHub.BuildingBlocks.Domain.Common;
 using TherapyHub.Domain.Patients.Events;
-using TherapyHub.Domain.Psychologists;
 
 namespace TherapyHub.Domain.Patients;
 
