@@ -120,6 +120,10 @@ Rules (`TherapyHub.ArchitectureTests` enforces them; these tests are the only gu
 
 - Naming: `PascalCase` types/members, `_camelCase` private fields, `Async` suffix on every `Task`/`ValueTask` method,
   tests `Method_State_ExpectedResult`.
+- Braces: when the body of `if`/`else`/`for`/`foreach`/`while` is one statement on one line, omit the braces and put
+  the statement on the next line, indented. When the body spans more than one line, use braces (IDE0011
+  `when_multiline`, enforced by the build). In an `if`/`else` chain, if any branch needs braces, use braces on every
+  branch. The analyzer can't flag unneeded braces, so reviewers check that half.
 
 ## Sensitive data (patient health information)
 

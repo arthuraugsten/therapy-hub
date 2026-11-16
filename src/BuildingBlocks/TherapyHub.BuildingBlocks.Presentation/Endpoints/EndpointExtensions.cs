@@ -41,9 +41,7 @@ public static class EndpointExtensions
             var endpointContract = typeof(IEndpoint<>).MakeGenericType(group.GetType());
 
             foreach (var endpoint in app.ServiceProvider.GetServices(endpointContract).Cast<IEndpoint>())
-            {
                 endpoint.MapEndpoint(groupBuilder);
-            }
         }
 
         return app;

@@ -48,9 +48,7 @@ public sealed class RateLimitingTests(GatewayFactory factory) : IClassFixture<Ga
         var client = factory.CreateClientFor(Guid.NewGuid());
 
         for (var i = 0; i < factory.RateLimits.PermitLimit; i++)
-        {
             Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(ProxiedPath)).StatusCode);
-        }
 
         var rejected = await client.GetAsync(ProxiedPath);
 
@@ -68,9 +66,7 @@ public sealed class RateLimitingTests(GatewayFactory factory) : IClassFixture<Ga
     {
         var exhausted = factory.CreateClientFor(Guid.NewGuid());
         for (var i = 0; i <= factory.RateLimits.PermitLimit; i++)
-        {
             await exhausted.GetAsync(ProxiedPath);
-        }
 
         var otherUser = factory.CreateClientFor(Guid.NewGuid());
         var response = await otherUser.GetAsync(ProxiedPath);
@@ -85,8 +81,6 @@ public sealed class RateLimitingTests(GatewayFactory factory) : IClassFixture<Ga
         var client = factory.CreateClient();
 
         for (var i = 0; i <= factory.RateLimits.PermitLimit; i++)
-        {
             Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(HealthPath)).StatusCode);
-        }
     }
 }

@@ -42,9 +42,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
         await using var scope = Services.CreateAsyncScope();
         foreach (var moduleDbContext in scope.ServiceProvider.GetServices<ModuleDbContext>())
-        {
             await moduleDbContext.Database.MigrateAsync();
-        }
     }
 
     public new async Task DisposeAsync()

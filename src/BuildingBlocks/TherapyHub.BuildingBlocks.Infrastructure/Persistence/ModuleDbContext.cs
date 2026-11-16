@@ -26,9 +26,7 @@ public abstract class ModuleDbContext : DbContext, IUnitOfWork
         {
             var aggregate = entry.Entity;
             if (aggregate.DomainEvents.Count == 0)
-            {
                 continue;
-            }
 
             (domainEvents ??= []).AddRange(aggregate.DomainEvents);
             aggregate.ClearDomainEvents();
@@ -38,9 +36,7 @@ public abstract class ModuleDbContext : DbContext, IUnitOfWork
 
         // Dispatched after commit: handlers see persisted state. Use an outbox if handlers must be guaranteed to run.
         if (domainEvents is not null)
-        {
             await _domainEventDispatcher.DispatchAsync(domainEvents, cancellationToken);
-        }
 
         return result;
     }

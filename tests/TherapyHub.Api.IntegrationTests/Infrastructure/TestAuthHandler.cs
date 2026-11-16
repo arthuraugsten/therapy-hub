@@ -20,9 +20,7 @@ internal sealed class TestAuthHandler(
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         if (!Request.Headers.TryGetValue(PsychologistHeader, out var psychologistId))
-        {
             return Task.FromResult(AuthenticateResult.NoResult());
-        }
 
         var identity = new ClaimsIdentity([new Claim(JwtRegisteredClaimNames.Sub, psychologistId.ToString())], SchemeName);
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName);

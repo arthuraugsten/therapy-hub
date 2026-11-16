@@ -20,9 +20,7 @@ public static class ModuleRules
         var ns = type.Namespace;
         var prefix = layer.ModuleRoot + ".";
         if (ns is null || !ns.StartsWith(prefix, StringComparison.Ordinal))
-        {
             return null;
-        }
 
         return ns[prefix.Length..].Split('.')[0];
     }
@@ -56,9 +54,7 @@ public static class ModuleRules
         {
             var forbidden = ForbiddenTypeNames(layers, publicApiLayer, target);
             if (forbidden.Length == 0)
-            {
                 continue;
-            }
 
             foreach (var source in modules.Where(module => module != target))
             {

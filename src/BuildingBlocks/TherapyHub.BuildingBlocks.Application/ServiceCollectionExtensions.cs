@@ -21,16 +21,12 @@ public static class ServiceCollectionExtensions
         foreach (var type in assembly.GetTypes())
         {
             if (type is not { IsClass: true, IsAbstract: false })
-            {
                 continue;
-            }
 
             foreach (var contract in type.GetInterfaces())
             {
                 if (contract.IsGenericType && Array.IndexOf(HandlerInterfaces, contract.GetGenericTypeDefinition()) >= 0)
-                {
                     services.AddScoped(contract, type);
-                }
             }
         }
 

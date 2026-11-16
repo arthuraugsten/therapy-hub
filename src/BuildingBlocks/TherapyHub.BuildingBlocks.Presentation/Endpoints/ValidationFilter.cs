@@ -16,9 +16,7 @@ internal sealed class ValidationFilter<TRequest> : IEndpointFilter
     {
         var request = context.Arguments.OfType<TRequest>().FirstOrDefault();
         if (request is null)
-        {
             return TypedResults.Problem(statusCode: StatusCodes.Status400BadRequest, detail: "The request body is required.");
-        }
 
         var validation = await _validator.ValidateAsync(request, context.HttpContext.RequestAborted);
 

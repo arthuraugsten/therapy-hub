@@ -17,9 +17,7 @@ public sealed record Email
     {
         var trimmed = value.AsSpan().Trim();
         if (value is null || trimmed.IsEmpty || trimmed.Length > MaxLength)
-        {
             return EmailErrors.Invalid;
-        }
 
         Span<char> buffer = stackalloc char[MaxLength];
         var lowered = buffer[..trimmed.ToLowerInvariant(buffer)];

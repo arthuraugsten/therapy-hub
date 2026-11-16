@@ -29,18 +29,14 @@ internal sealed class RegisterPatientHandler : ICommandHandler<RegisterPatientCo
     {
         var email = Email.Create(command.Email);
         if (email.IsFailure)
-        {
             return email.Error;
-        }
 
         Cpf? cpf = null;
         if (!string.IsNullOrWhiteSpace(command.Cpf))
         {
             var cpfResult = Cpf.Create(command.Cpf);
             if (cpfResult.IsFailure)
-            {
                 return cpfResult.Error;
-            }
 
             cpf = cpfResult.Value;
         }
@@ -48,9 +44,7 @@ internal sealed class RegisterPatientHandler : ICommandHandler<RegisterPatientCo
         var psychologistId = _currentUser.PsychologistId;
 
         if (await _patients.IsEmailInUseAsync(psychologistId, email.Value, cancellationToken))
-        {
             return PatientErrors.EmailAlreadyInUse;
-        }
 
         var patient = Patient.Register(
             psychologistId,
@@ -61,9 +55,7 @@ internal sealed class RegisterPatientHandler : ICommandHandler<RegisterPatientCo
             _timeProvider.GetUtcNow());
 
         if (patient.IsFailure)
-        {
             return patient.Error;
-        }
 
         _patients.Add(patient.Value);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

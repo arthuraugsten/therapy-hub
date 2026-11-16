@@ -24,9 +24,7 @@ internal sealed class DomainEventDispatcher : IDomainEventDispatcher
             var handleMethod = handlerType.GetMethod(nameof(IDomainEventHandler<IDomainEvent>.HandleAsync))!;
 
             foreach (var handler in _serviceProvider.GetServices(handlerType))
-            {
                 await (Task)handleMethod.Invoke(handler, [domainEvent, cancellationToken])!;
-            }
         }
     }
 }
