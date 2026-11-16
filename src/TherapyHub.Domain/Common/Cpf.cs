@@ -17,24 +17,45 @@ public sealed record Cpf
 
     public static Result<Cpf> Create(string? value)
     {
-        var digits = new string((value ?? string.Empty).Where(char.IsAsciiDigit).ToArray());
-
-        if (digits.Length != Length || digits.Distinct().Count() == 1 || !HasValidCheckDigits(digits))
+        // Fast path: input is already exactly 11 ASCII digits, so it can be stored as is.
+        if (value is not null && value.Length == Length && !value.AsSpan().ContainsAnyExceptInRange('0', '9'))
         {
-            return CpfErrors.Invalid;
+            return IsValid(value) ? new Cpf(value) : CpfErrors.Invalid;
         }
 
-        return new Cpf(digits);
+        Span<char> digits = stackalloc char[Length];
+        var count = 0;
+        foreach (var c in value.AsSpan())
+        {
+            if (!char.IsAsciiDigit(c))
+            {
+                continue;
+            }
+
+            if (count == Length)
+            {
+                return CpfErrors.Invalid;
+            }
+
+            digits[count++] = c;
+        }
+
+        return count != Length || !IsValid(digits)
+            ? (Result<Cpf>)CpfErrors.Invalid
+            : (Result<Cpf>)new Cpf(new string(digits));
     }
 
     public override string ToString() => Value;
 
+    private static bool IsValid(ReadOnlySpan<char> digits) =>
+        digits.IndexOfAnyExcept(digits[0]) >= 0 && HasValidCheckDigits(digits);
+
     // Receita Federal algorithm: digits 10 and 11 are check digits (weighted sum modulo 11).
-    private static bool HasValidCheckDigits(string digits) =>
+    private static bool HasValidCheckDigits(ReadOnlySpan<char> digits) =>
         CheckDigit(digits, 9) == digits[9] - '0' &&
         CheckDigit(digits, 10) == digits[10] - '0';
 
-    private static int CheckDigit(string digits, int length)
+    private static int CheckDigit(ReadOnlySpan<char> digits, int length)
     {
         var sum = 0;
         for (var i = 0; i < length; i++)

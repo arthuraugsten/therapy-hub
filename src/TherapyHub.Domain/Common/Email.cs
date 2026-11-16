@@ -18,15 +18,21 @@ public sealed record Email
 
     public static Result<Email> Create(string? value)
     {
-        var normalized = value?.Trim().ToLowerInvariant();
-
-        if (string.IsNullOrEmpty(normalized) || normalized.Length > MaxLength ||
-            !MailAddress.TryCreate(normalized, out var address) || address.Address != normalized)
+        var trimmed = value.AsSpan().Trim();
+        if (value is null || trimmed.IsEmpty || trimmed.Length > MaxLength)
         {
             return EmailErrors.Invalid;
         }
 
-        return new Email(normalized);
+        Span<char> buffer = stackalloc char[MaxLength];
+        var lowered = buffer[..trimmed.ToLowerInvariant(buffer)];
+
+        // Reuse the input when trimming and lowering changed nothing; otherwise allocate once.
+        var normalized = lowered.SequenceEqual(value) ? value : new string(lowered);
+
+        return !MailAddress.TryCreate(normalized, out var address) || address.Address != normalized
+            ? (Result<Email>)EmailErrors.Invalid
+            : (Result<Email>)new Email(normalized);
     }
 
     public override string ToString() => Value;
