@@ -3,8 +3,12 @@ using FluentValidation;
 namespace TherapyHub.Api.Endpoints;
 
 /// <summary>Runs the FluentValidation validator for <typeparamref name="TRequest"/> before the endpoint handler.</summary>
-internal sealed class ValidationFilter<TRequest>(IValidator<TRequest> validator) : IEndpointFilter
+internal sealed class ValidationFilter<TRequest> : IEndpointFilter
 {
+    private readonly IValidator<TRequest> _validator;
+
+    public ValidationFilter(IValidator<TRequest> validator) => _validator = validator;
+
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
         var request = context.Arguments.OfType<TRequest>().FirstOrDefault();
@@ -13,7 +17,7 @@ internal sealed class ValidationFilter<TRequest>(IValidator<TRequest> validator)
             return TypedResults.Problem(statusCode: StatusCodes.Status400BadRequest, detail: "The request body is required.");
         }
 
-        var validation = await validator.ValidateAsync(request, context.HttpContext.RequestAborted);
+        var validation = await _validator.ValidateAsync(request, context.HttpContext.RequestAborted);
 
         return validation.IsValid
             ? await next(context)

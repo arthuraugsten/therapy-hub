@@ -17,6 +17,7 @@ Agents that don't load those files must read the relevant one before changing `s
 First-time setup:
 
 ```bash
+git config core.hooksPath .githooks            # enables hooks that enforce signed commits (README.md, Signed commits)
 dotnet tool restore                            # installs dotnet-ef (local tool, see dotnet-tools.json)
 cp .env.example .env                           # then set the passwords in .env (never commit it)
 docker compose up -d                           # SQL Server on :1433, Keycloak on :8080
@@ -74,16 +75,6 @@ authorize, tenant scoping) → SQL Server.
 
 - Naming: `PascalCase` types/members, `_camelCase` private fields, `Async` suffix on every `Task`/`ValueTask` method,
   tests `Method_State_ExpectedResult`.
-- **No magic strings or numbers.** Any literal with meaning becomes a named `const` (or `static readonly`), defined once
-  next to the type that owns it and reused everywhere else, tests included. Before adding a literal, search for an existing
-  constant; if the same value appears a second time, extract it. Prefer framework constants (`JwtRegisteredClaimNames.Sub`,
-  `StatusCodes`, `HttpStatusCode`, `nameof`).
-  - Covers: configuration keys and section names, claim types, header names, policy names, error codes
-    (as `Error` objects in `*Errors` classes), lengths, limits, timeouts.
-  - Exceptions (inline is fine): endpoint definitions (group prefixes, tags, route templates, `WithName`, `Created`
-    locations, `/health`); the CPF algorithm; `0`/`1` as loop bounds and empty checks; `string.Empty`; human-readable
-    log/exception/ProblemDetails text; `[InlineData]` values that are the test case itself.
-  - Where constants live and how tests use them: see the agent files.
 
 ## Sensitive data (patient health information)
 
@@ -106,4 +97,4 @@ and record keeping follows CFP rules (Resolution 001/2009) and the Psychologist'
 **Ask first:** adding NuGet packages, changing aggregate boundaries, schema changes that drop/rename columns, changing auth,
 changing rate-limit values or scope.
 **Never:** commit secrets or `.env`, log PHI, use real patient data, disable nullable or analyzers to make code compile,
-skip or weaken a failing test to get green, introduce magic strings/numbers or re-type a value that already has a constant.
+skip or weaken a failing test to get green.

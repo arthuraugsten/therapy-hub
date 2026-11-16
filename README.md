@@ -111,6 +111,9 @@ sequenceDiagram
 ### 1. First-time setup
 
 ```bash
+# Enable the repo's git hooks (they enforce signed commits, see "Signed commits" below)
+git config core.hooksPath .githooks
+
 # Restore local tools (dotnet-ef)
 dotnet tool restore
 
@@ -185,6 +188,25 @@ dotnet ef migrations add <Name> --project src/TherapyHub.Infrastructure --startu
 | `TherapyHub.Application.Tests`        | Use case handlers with substituted ports                          |
 | `TherapyHub.Api.IntegrationTests`     | HTTP endpoints against a real SQL Server in Testcontainers        |
 | `TherapyHub.Gateway.IntegrationTests` | Gateway auth and rate limiting against a stub backend (no Docker) |
+
+## Signed commits
+
+Every commit must be signed. The hooks in `.githooks/` enforce this once `core.hooksPath` points at them:
+
+- `pre-commit` stops a commit when `commit.gpgsign` is off or the signing key is missing.
+- `pre-push` stops a push when any new commit is unsigned or has a bad signature.
+
+To sign with an SSH key (add the public key on GitHub as a **Signing Key** so commits show as Verified):
+
+```bash
+git config --global gpg.format ssh
+git config --global user.signingkey ~/.ssh/<your-signing-key>.pub
+git config --global commit.gpgsign true
+git config --global tag.gpgsign true
+```
+
+On Windows, also set `git config --global gpg.ssh.program C:/Windows/System32/OpenSSH/ssh-keygen.exe` so signing
+uses the keys loaded in the Windows ssh-agent service.
 
 ## Conventions
 

@@ -41,10 +41,10 @@ This file adds the testing rules only you need.
 ## How to write tests
 
 - Name: `Method_State_ExpectedResult`. Arrange / Act / Assert separated by blank lines.
-- Compare against production constants, never re-typed literals: `Assert.Equal(CpfErrors.Invalid, result.Error)`,
+- Assert against the production error objects and options: `Assert.Equal(CpfErrors.Invalid, result.Error)`,
   `factory.RateLimits.PermitLimit`, `UserRateLimitOptions.DefaultPermitLimit`.
-- Test input data (names, emails, CPFs, request paths such as `"/patients"`) is declared once per test class as
-  `const`/`static readonly` fields. Values inside `[InlineData]` that *are* the test case may stay inline.
+- Test input data (names, emails, CPFs, request paths such as `"/patients"`) may be written inline. `[InlineData]` takes
+  literal values, not constants, so each case reads on its own.
 - Only obviously fake data: "Fake Patient", `@example.com` emails, the public test CPF `529.982.247-25`. Never realistic
   names, real documents, or clinical text that could pass as real.
 - Integration tests share a class fixture; make each test independent (unique emails via `Guid`, a new psychologist ID

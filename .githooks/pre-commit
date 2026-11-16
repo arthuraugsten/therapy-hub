@@ -1,0 +1,27 @@
+#!/bin/sh
+# Refuses to commit unless commit signing is enabled and the signing key is configured.
+# Enable once per clone: git config core.hooksPath .githooks
+
+fail() {
+    echo "pre-commit: $1" >&2
+    echo "pre-commit: commits in this repo must be signed. See README.md (Signed commits)." >&2
+    exit 1
+}
+
+[ "$(git config --bool commit.gpgsign)" = "true" ] ||
+    fail "commit.gpgsign is not true. Run: git config --global commit.gpgsign true"
+
+key=$(git config user.signingkey) ||
+    fail "user.signingkey is not set."
+
+if [ "$(git config gpg.format)" = "ssh" ]; then
+    case "$key" in
+        key::*) ;; # literal public key, nothing to check on disk
+        *)
+            path=$(echo "$key" | sed "s|^~|$HOME|")
+            [ -f "$path" ] || fail "SSH signing key not found: $key"
+            ;;
+    esac
+fi
+
+exit 0

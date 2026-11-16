@@ -7,12 +7,25 @@ using TherapyHub.Domain.Patients;
 
 namespace TherapyHub.Application.Patients.RegisterPatient;
 
-internal sealed class RegisterPatientHandler(
-    IPatientRepository patients,
-    IUnitOfWork unitOfWork,
-    ICurrentUser currentUser,
-    TimeProvider timeProvider) : ICommandHandler<RegisterPatientCommand, PatientDto>
+internal sealed class RegisterPatientHandler : ICommandHandler<RegisterPatientCommand, PatientDto>
 {
+    private readonly IPatientRepository _patients;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ICurrentUser _currentUser;
+    private readonly TimeProvider _timeProvider;
+
+    public RegisterPatientHandler(
+        IPatientRepository patients,
+        IUnitOfWork unitOfWork,
+        ICurrentUser currentUser,
+        TimeProvider timeProvider)
+    {
+        _patients = patients;
+        _unitOfWork = unitOfWork;
+        _currentUser = currentUser;
+        _timeProvider = timeProvider;
+    }
+
     public async Task<Result<PatientDto>> HandleAsync(RegisterPatientCommand command, CancellationToken cancellationToken)
     {
         var email = Email.Create(command.Email);
@@ -33,9 +46,9 @@ internal sealed class RegisterPatientHandler(
             cpf = cpfResult.Value;
         }
 
-        var psychologistId = currentUser.PsychologistId;
+        var psychologistId = _currentUser.PsychologistId;
 
-        if (await patients.IsEmailInUseAsync(psychologistId, email.Value, cancellationToken))
+        if (await _patients.IsEmailInUseAsync(psychologistId, email.Value, cancellationToken))
         {
             return PatientErrors.EmailAlreadyInUse;
         }
@@ -46,15 +59,15 @@ internal sealed class RegisterPatientHandler(
             email.Value,
             cpf,
             command.BirthDate,
-            timeProvider.GetUtcNow());
+            _timeProvider.GetUtcNow());
 
         if (patient.IsFailure)
         {
             return patient.Error;
         }
 
-        patients.Add(patient.Value);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        _patients.Add(patient.Value);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return PatientDto.From(patient.Value);
     }

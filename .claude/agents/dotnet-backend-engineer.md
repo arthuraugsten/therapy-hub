@@ -14,13 +14,15 @@ rules). This file adds the implementation rules only you need.
   (rename, moved type), make the smallest mechanical fix so the solution builds, and list it in your report.
 - Before you finish: `dotnet build` (0 warnings), `dotnet test` for the projects you touched, `dotnet format --verify-no-changes`.
   If an existing test now fails because the behavior changed on purpose, don't "fix" the test: report it.
+- Before you finish, also do the performance pass in [Performance and allocations](#performance-and-allocations).
 
 ## Report back (keep it short; the caller has no access to your context)
 
 1. What changed, as a file list with one line each.
 2. Contract changes QA must cover: routes, request/response shapes, status codes, error codes, config keys, migrations.
 3. Build/test/format results, verbatim counts. Anything skipped or failing, and why.
-4. Open questions or decisions you made that the user should confirm.
+4. Performance: what you optimized (queries, allocations), measurements if you took any, and known hot spots you left alone.
+5. Open questions or decisions you made that the user should confirm.
 
 ## Dependency rule (never violate)
 
@@ -155,13 +157,51 @@ internal sealed class RegisterPatientEndpoint : IEndpoint<PatientsEndpointGroup>
 - Every access to a clinical record writes an audit entry (who, when, which record), with no clinical content.
 - Migrations: `--output-dir Persistence/Migrations`. Never edit an applied migration; create a new one.
 
+## Performance and allocations
+
+Every change gets a performance pass before you report back: review the code you wrote or touched for wasted work
+and avoidable allocations, fix what is cheap to fix, and report the rest. Prefer the faster option when it is equally
+readable; when it costs readability, apply it only on hot paths (per-request code, loops, serialization, the gateway
+pipeline) and say why in the report.
+
+- **Database first** (usually the biggest win): no N+1 queries; project to DTOs with `Select` instead of loading
+  aggregates for reads; `AsNoTracking` on queries; fetch only the columns and rows you need; filter and page in SQL,
+  never in memory after `ToListAsync`. Check new queries for a supporting index; add it in the configuration and
+  migration. Use `AnyAsync` over `CountAsync() > 0`; avoid `Include` chains that cause cartesian explosion
+  (`AsSplitQuery` when needed). Consider compiled queries (`EF.CompileAsyncQuery`) for hot, fixed-shape queries.
+- **Allocations**: no LINQ in hot loops when a plain loop is clearer and allocation-free; size collections when the count
+  is known (`new List<T>(count)`); return `IReadOnlyList<T>`/arrays, not lazy `IEnumerable<T>` evaluated twice; avoid
+  closures capturing locals on hot paths (`static` lambdas); use `Span<T>`/`ReadOnlySpan<char>`, `stackalloc` for
+  small buffers, and `string.Create`/`StringBuilder` instead of repeated concatenation when parsing or formatting
+  (e.g. `Cpf`, `PhoneNumber` normalization); `ArrayPool<T>`/`RecyclableMemoryStream`-style pooling only for large buffers.
+- **Value types**: strongly-typed IDs stay `readonly record struct`. Value objects stay `sealed record` (a struct's
+  `default` would bypass factory validation), so don't convert them for speed. Avoid boxing (no struct-to-`object`/interface casts on hot paths, no `Enum.ToString()`/`HasFlag` in loops).
+- **Static and cached data**: `static readonly` for immutable lookups (`FrozenDictionary`/`FrozenSet`), source-generated
+  `[GeneratedRegex]` instead of `new Regex(...)`, `SearchValues<T>` for character sets, cached `JsonSerializerOptions`
+  (never `new` per call). Use `[LoggerMessage]` source-generated logging (no string interpolation in log calls).
+- **Async**: `ValueTask` for methods that usually complete synchronously; no `Task.Run` in request code; no sync-over-async;
+  stream large responses instead of buffering; pass `CancellationToken` all the way down so abandoned requests stop work.
+- **HTTP/JSON**: `IHttpClientFactory`, never `new HttpClient()` per call; System.Text.Json source generation
+  (`JsonSerializerContext`) for request/response types where it fits; output caching only for non-PHI, non-tenant data.
+- **Measure, don't guess**: for hot-path changes or when you claim an improvement, measure it (`dotnet-counters`,
+  `dotnet-trace`, EF Core query logging / `ToQueryString()` for generated SQL, or a BenchmarkDotNet run in a scratch
+  project outside the solution). Adding BenchmarkDotNet or any package to the solution still needs the user's approval.
+- Performance never overrides correctness, tenant isolation, encryption, auditing, or the sensitive-data rules
+  (e.g. don't cache clinical content, don't log query parameters with PHI to inspect SQL).
+
 ## Code style
 
 - `sealed` by default; `internal` unless needed across projects (`InternalsVisibleTo` for test projects).
-- Constructor (primary constructor) injection only; no service locator; no static mutable state.
+- Constructor injection only, through an explicit constructor that assigns `private readonly` fields (`_camelCase`).
+  No primary constructors on classes (records are fine), with one exception: use a primary constructor when every
+  parameter is only passed to the base constructor and never used in the class body
+  (`sealed class EncryptedStringConverter(IDataProtector protector) : ValueConverter<string, string>(...)`).
+  If any parameter is used in the body, use an explicit constructor and fields. A constructor with a single assignment
+  is expression-bodied (`public ValidationFilter(IValidator<TRequest> validator) => _validator = validator;`, IDE0021).
+  No service locator; no static mutable state.
 - Small interfaces per consumer over a generic `IRepository<T>`.
 - Async all the way; `Async` suffix on every `Task`/`ValueTask` method; never `.Result`/`.Wait()`.
-- **Constants** (see the shared rule in AGENTS.md). Where they live in production code: `Domain/**/*Errors.cs` (errors),
+- **Constants**: when a value is shared, it lives in one place: `Domain/**/*Errors.cs` (errors),
   value objects (`Email.MaxLength`, `Cpf.Length`), `*Settings` classes for configuration keys (`AuthenticationSettings`,
   `DataProtectionSettings`, `GatewaySettings`), options classes for `Default*` values. Compose related constants
   (`KeysPathKey = SectionName + ":KeysPath"`). The Gateway keeps its own copies of shared keys in `GatewaySettings`.
